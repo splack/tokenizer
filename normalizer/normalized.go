@@ -765,15 +765,23 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		// log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
 
 		var endShift [][]int
-		for _, item := range n.alignments[endShiftStart:] {
-			endShift = append(endShift, item)
+		// Clamp endShiftStart to prevent slice bounds panic
+		if endShiftStart < len(n.alignments) {
+			for _, item := range n.alignments[endShiftStart:] {
+				endShift = append(endShift, item)
+			}
 		}
 		endRange := expandAlignments(endShift)
 
 		// log.Printf("End range: %+v\n", endRange)
 
 		if endRange != nil {
-			alignments := n.alignmentsOriginal[endRange[0]:endRange[1]]
+			// Clamp endRange[1] to prevent slice bounds panic
+			end := endRange[1]
+			if end > len(n.alignmentsOriginal) {
+				end = len(n.alignmentsOriginal)
+			}
+			alignments := n.alignmentsOriginal[endRange[0]:end]
 			var newAlignments [][]int
 			if len(alignments) > 0 {
 				// log.Printf("Alignments before shifting: %+v\n", alignments)
@@ -783,7 +791,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 					newAlignments = append(newAlignments, []int{newOffset0, newOffset1})
 				}
 				aligns := append(n.alignmentsOriginal[:endRange[0]], newAlignments...)
-				aligns = append(aligns, n.alignmentsOriginal[endRange[1]:]...)
+				aligns = append(aligns, n.alignmentsOriginal[end:]...)
 				n.alignmentsOriginal = aligns
 				// log.Printf("After: %+v\n", newAlignments)
 			}
